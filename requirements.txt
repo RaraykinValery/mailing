@@ -5,4 +5,5 @@ oauthlib==3.2.2
 pytz==2022.7
 social-auth-app-django==5.0.0
 celery[redis]==5.2.7
+celery-singleton==0.3.1
 flower==1.2.0
