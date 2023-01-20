@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from manager.models import Mailing, Client, Message
 from manager.serializers import MailingSerializer, ClientSerializer, MessageSerializer
 
+
 def auth(request):
     return render(request, "oauth.html")
 
@@ -34,7 +35,8 @@ class MailingGeneralStatistics(APIView):
         mailings_numbers_grouped_by_status = (
             Mailing.objects.all().aggregate(
                 complited=Count(Case(When(stop_date__lt=now, then=1))),
-                active=Count(Case(When(stop_date__gt=now, start_date__lt=now, then=1))),
+                active=Count(
+                    Case(When(stop_date__gt=now, start_date__lt=now, then=1))),
                 waiting=Count(Case(When(start_date__gt=now, then=1))),
             ),
         )

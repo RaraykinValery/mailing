@@ -1,10 +1,10 @@
+import json
 from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.db.models.query_utils import Q
 import pytz
-
-from manager.tasks import send_mailing
+import requests
 
 
 TIMEZONES = tuple(zip(pytz.all_timezones, pytz.all_timezones))
@@ -26,10 +26,30 @@ class Mailing(models.Model):
 
         now = timezone.localtime()
 
-        print(f"{now}, {self.start_date}, {self.stop_date}, {self.filter}")
-
         if self.start_date < now and self.stop_date > now:
-            send_mailing(self.id)
+            clients_to_send = Client.objects.filter(
+                Q(operator_code=self.filter) | Q(tag=self.filter)
+            )
+
+            for client in clients_to_send:
+                data = {
+                    "id": 1,
+                    "phone": int(client.phone_number),
+                    "text": self.text,
+                }
+
+                response = requests.post(
+                    "https://probe.fbrq.cloud/v1/send/1",
+                    data=json.dumps(data),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {TOKEN}",
+                    },
+                )
+
+                Message.objects.create(
+                    status=response.status_code, mailing=self, client=client
+                )
 
 
 class Client(models.Model):
@@ -42,12 +62,8 @@ class Client(models.Model):
     phone_number = models.CharField(
         "Номер телефона", validators=[phone_regex], max_length=11
     )
-    operator_code_regex = RegexValidator(
-        regex=r"^\d{3}$", message="Operator code must be entered in the format: '999'"
-    )
     operator_code = models.CharField(
-        "Код оператора", validators=[operator_code_regex], max_length=11, editable=False
-    )
+        "Код оператора", max_length=3, editable=False)
     tag = models.CharField("Тэг", max_length=255, blank=True)
     timezone = models.CharField(
         "Часовой пояс", max_length=32, choices=TIMEZONES, default="UTS"

@@ -11,10 +11,8 @@ services:
       - DB_NAME=dbname
       - DB_USER=dbuser
       - DB_PASS=pass
-
     command: >
       sh -c "python manage.py runserver 0.0.0.0:8000"
-
     depends_on:
       - database
 
@@ -47,6 +45,19 @@ services:
       - DB_NAME=dbname
       - DB_USER=dbuser
       - DB_PASS=pass
+
+  celery-beat:
+    build:
+      context: .
+    hostname: celery-beat
+    entrypoint: celery
+    command: -A celery_app.app beat --loglevel=info
+    volumes:
+      - ./mailing:/mailing
+    links:
+      - redis
+    depends_on:
+      - redis
 
   flower:
     build:
